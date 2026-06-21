@@ -378,17 +378,10 @@ async function saveStaff(){
   try{
     const rows=document.querySelectorAll('#staff-tbody tr');
     for(let i=0;i<rows.length;i++){
-      if(!staff[i]||!staff[i].id)continue;
+      if(!staff[i])continue;
       const inp=rows[i].querySelectorAll('input');
       const deptSel=rows[i].querySelector('select');
-      const updateData={
-        name:inp[0]?inp[0].value:'',
-        empNo:inp[1]?inp[1].value:'',
-        designation:inp[2]?inp[2].value:'',
-        division:inp[3]?inp[3].value:'',
-        department:deptSel?deptSel.value:''
-      };
-      await api('PUT','/staff/'+staff[i].id,updateData);
+      await api('PUT','/staff/'+staff[i].id,{name:inp[0].value,empNo:inp[1].value,designation:inp[2].value,division:inp[3].value,department:deptSel?deptSel.value:''});
     }
     await loadStaffAndShifts();toast('Staff saved!');
   }catch(err){toast('Save failed: '+err.message,'error');}
