@@ -135,16 +135,6 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;font-size:13px}
         <span id="sync-label">Connected to database</span>
       </div>
       <div class="month-bar">
-        <div class="fb"><label>Department</label>
-          <select id="sched-dept" onchange="filterByDept()">
-            <option value="">All Departments</option>
-            <option value="Maintenance">Maintenance</option>
-            <option value="Operations">Operations</option>
-            <option value="Admin">Admin</option>
-            <option value="HR">HR</option>
-            <option value="Security">Security</option>
-          </select>
-        </div>
         <div class="fb"><label>Month</label>
           <select id="sched-month">
             <option value="1">January</option><option value="2">February</option><option value="3">March</option>
@@ -191,7 +181,7 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;font-size:13px}
     <div class="card">
       <div class="card-title">Staff List</div>
       <table class="staff-table">
-        <thead><tr><th>#</th><th>Name</th><th>Employee ID</th><th>Designation</th><th>Division</th><th>Department</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>Name</th><th>Employee ID</th><th>Designation</th><th>Division</th><th>Dept</th><th></th></tr></thead>
         <tbody id="staff-tbody"></tbody>
       </table>
       <div class="btn-row">
@@ -213,16 +203,6 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;font-size:13px}
         </div>
       </div>
       <div class="month-bar">
-        <div class="fb"><label>Department</label>
-          <select id="ot-dept" onchange="renderStaffPicker()">
-            <option value="">All Departments</option>
-            <option value="Maintenance">Maintenance</option>
-            <option value="Operations">Operations</option>
-            <option value="Admin">Admin</option>
-            <option value="HR">HR</option>
-            <option value="Security">Security</option>
-          </select>
-        </div>
         <div class="fb"><label>Month</label>
           <select id="ot-month">
             <option value="1">January</option><option value="2">February</option><option value="3">March</option>
@@ -358,10 +338,7 @@ function renderStaff(){
       <td><input value="${s.empNo||''}" style="width:80px"></td>
       <td><input value="${s.designation||''}"></td>
       <td><input value="${s.division||''}"></td>
-      <td><select style="border:1px solid #ddd;border-radius:3px;padding:3px 6px;font-size:12px;width:100%">
-        <option value="">-- Select --</option>
-        ${['Maintenance','Operations','Admin','HR','Security'].map(d=>`<option value="${d}" ${s.department===d?'selected':''}>${d}</option>`).join('')}
-      </select></td>
+      <td><input value="${s.department||''}"></td>
       <td><button class="btn-sm btn-del" onclick="removeStaff('${s.id}')">X</button></td>`;
     tb.appendChild(tr);
   });
@@ -380,8 +357,7 @@ async function saveStaff(){
     for(let i=0;i<rows.length;i++){
       if(!staff[i])continue;
       const inp=rows[i].querySelectorAll('input');
-      const deptSel=rows[i].querySelector('select');
-      await api('PUT','/staff/'+staff[i].id,{name:inp[0].value,empNo:inp[1].value,designation:inp[2].value,division:inp[3].value,department:deptSel?deptSel.value:''});
+      await api('PUT','/staff/'+staff[i].id,{name:inp[0].value,empNo:inp[1].value,designation:inp[2].value,division:inp[3].value,department:inp[4].value});
     }
     await loadStaffAndShifts();toast('Staff saved!');
   }catch(err){toast('Save failed: '+err.message,'error');}
@@ -524,9 +500,8 @@ function renderSchedule(dim){
   }
   html+=`</tr></thead><tbody>`;
   let warns=0;
-  const filteredStaff=getFilteredStaff();
-  filteredStaff.forEach(s=>{
-    html+=`<tr><td class="sname">${s.name||'?'}<br><span style="font-size:9px;color:#94a3b8;font-weight:400">${s.department||''}</span></td><td class="sid">${s.empNo}</td>`;
+  staff.forEach(s=>{
+    html+=`<tr><td class="sname">${s.name||'?'}</td><td class="sid">${s.empNo}</td>`;
     for(let d=1;d<=dim;d++){
       const dt=new Date(currentYear,currentMonth-1,d);
       const dow=dt.getDay(),key=fmtDate(dt);
@@ -563,31 +538,12 @@ function cellChange(staffId,key,dow,sel){
 }
 
 // OT
-function filterByDept(){
-  if(currentMonth===null) return;
-  const dim=new Date(currentYear,currentMonth,0).getDate();
-  renderSchedule(dim);
-}
-
-function getFilteredStaff(){
-  const deptFilter=document.getElementById('sched-dept')||{value:''};
-  if(!deptFilter.value) return staff;
-  return staff.filter(s=>s.department===deptFilter.value);
-}
-
-function getOTFilteredStaff(){
-  const deptFilter=document.getElementById('ot-dept')||{value:''};
-  if(!deptFilter.value) return staff;
-  return staff.filter(s=>s.department===deptFilter.value);
-}
-
 function renderStaffPicker(){
   const p=document.getElementById('staff-picker');if(!p)return;p.innerHTML='';
-  const filteredStaff=getOTFilteredStaff();
-  filteredStaff.forEach(s=>{
+  staff.forEach(s=>{
     const div=document.createElement('div');
     div.className='staff-chip'+(selectedStaff.has(s.id)?' selected':'');
-    div.textContent=(s.name||s.empNo)+(s.department?` (${s.department})`:'');
+    div.textContent=s.name||s.empNo;
     div.onclick=()=>{
       if(selectedStaff.has(s.id))selectedStaff.delete(s.id);else selectedStaff.add(s.id);
       renderStaffPicker();
