@@ -351,18 +351,25 @@ async function loadStaffAndShifts(){
 // STAFF RENDER
 function renderStaff(){
   const tb=document.getElementById('staff-tbody');tb.innerHTML='';
+  const depts=['Maintenance','Operations','Admin','HR','Security'];
   staff.forEach((s,i)=>{
+    const sid=s._id||s.id||'';
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td style="color:#999;font-size:11px">${i+1}</td>
-      <td><input value="${s.name||''}"></td>
-      <td><input value="${s.empNo||''}" style="width:80px"></td>
-      <td><input value="${s.designation||''}"></td>
-      <td><input value="${s.division||''}"></td>
-      <td><select class="dept-select" style="border:1px solid #ddd;border-radius:3px;padding:3px 6px;font-size:12px;width:100%">
-        <option value="">-- Select --</option>
-        ${['Maintenance','Operations','Admin','HR','Security'].map(d=>`<option value="${d}" ${(s.department||'').trim()===d?'selected':''}>${d}</option>`).join('')}
-      </select></td>
-      <td><button class="btn-sm btn-del" onclick="removeStaff('${s._id||s.id}')">X</button></td>`;
+    tr.dataset.staffId=sid;
+    tr.dataset.idx=i;
+    let deptOpts='<option value="">-- Select --</option>';
+    depts.forEach(d=>{
+      const sel=(s.department||'').trim()===d?'selected':'';
+      deptOpts+=`<option value="${d}" ${sel}>${d}</option>`;
+    });
+    tr.innerHTML=`
+      <td style="color:#999;font-size:11px">${i+1}</td>
+      <td><input class="inp-name" value="${(s.name||'').replace(/"/g,'&quot;')}"></td>
+      <td><input class="inp-empno" value="${s.empNo||''}" style="width:80px"></td>
+      <td><input class="inp-desig" value="${(s.designation||'').replace(/"/g,'&quot;')}"></td>
+      <td><input class="inp-div" value="${(s.division||'').replace(/"/g,'&quot;')}"></td>
+      <td><select class="inp-dept" style="border:1px solid #ddd;border-radius:3px;padding:3px 6px;font-size:12px;width:100%">${deptOpts}</select></td>
+      <td><button class="btn-sm btn-del" onclick="removeStaff('${sid}')">X</button></td>`;
     tb.appendChild(tr);
   });
 }
@@ -377,20 +384,20 @@ async function addStaff(){
 async function saveStaff(){
   try{
     const rows=document.querySelectorAll('#staff-tbody tr');
-    for(let i=0;i<rows.length;i++){
-      if(!staff[i]||!staff[i].id)continue;
-      const inp=rows[i].querySelectorAll('input');
-      const deptSel=rows[i].querySelector('.dept-select');
+    for(const row of rows){
+      const sid=row.dataset.staffId;
+      if(!sid)continue;
       const updateData={
-        name:inp[0]?inp[0].value:'',
-        empNo:inp[1]?inp[1].value:'',
-        designation:inp[2]?inp[2].value:'',
-        division:inp[3]?inp[3].value:'',
-        department:deptSel?deptSel.value:''
+        name:row.querySelector('.inp-name')?.value||'',
+        empNo:row.querySelector('.inp-empno')?.value||'',
+        designation:row.querySelector('.inp-desig')?.value||'',
+        division:row.querySelector('.inp-div')?.value||'',
+        department:row.querySelector('.inp-dept')?.value||''
       };
-      await api('PUT','/staff/'+(staff[i]._id||staff[i].id),updateData);
+      await api('PUT','/staff/'+sid,updateData);
     }
-    await loadStaffAndShifts();toast('Staff saved!');
+    await loadStaffAndShifts();
+    toast('Staff saved!');
   }catch(err){toast('Save failed: '+err.message,'error');}
 }
 
